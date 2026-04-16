@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 from PIL import Image
-import tflite_runtime.interpreter as tflite
+import tensorflow as tf
 
 st.set_page_config(
   page_title="CIFAR-10 AI Classifier",
@@ -25,7 +25,7 @@ class_names=['airplane',
 #Load model
 @st.cache_resource
 def load_model():
-  interpreter = tflite.Interpreter(model_path="model.tflite")
+  interpreter = tf.lite.Interpreter(model_path="model.tflite")
   interpreter.allocate_tensors()
   return interpreter
   
