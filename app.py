@@ -1,7 +1,7 @@
 import streamlit as st
-import tensorflow as tf
 import numpy as np
 from PIL import Image
+import tflite_runtime.interpreter as tflite
 
 st.set_page_config(
   page_title="CIFAR-10 AI Classifier",
@@ -23,11 +23,16 @@ class_names=['airplane',
             ]
 
 #Load model
+@st.cache_resource
 def load_model():
-    model = tf.keras.models.load_model("regularized_cnn_cifar10.keras")
-    return model
-
+  interpreter = tflite.Interpreter(model_path="model.tflite")
+  interpreter.allocate_tensors()
+  return interpreter
+  
 model = load_model()
+
+input_details = model.get_input_details()
+output_details = model.get_output_details()
 
 st.title("CIFAR-10 Image Classification App")
 st.write("Upload an image and the trained CNN model will classify it.")
@@ -40,9 +45,11 @@ if uploaded_file is not None:
   st.image(image, caption="Uploaded Image", use_column_width=True)
   image = image.resize((32,32))
   img_array = np.array(image) / 255.0
-  img_array = np.expand_dims(img_array, axis=0)
+  img_array = np.expand_dims(img_array, axis=0).astype(np.float32)
   with st.spinner("Analyzing image..."):
-    prediction = model.predict(img_array, verbose=0)
+    model.set_tensor(input_details[0]['index'], img_array)
+    model.invoke()
+    prediction = model.get_tensor(output_details[0]['index'])
   predicted_index = np.argmax(prediction)
   predicted_class = class_names[predicted_index]
   confidence = np.max(prediction)
